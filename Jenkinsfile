@@ -1,25 +1,33 @@
 pipeline {
     agent any
     stages {
-        stage('Build') { 
+        stage('Install Dependencies') {
             steps {
-                sh 'npm install' 
+                sh 'npm install'
             }
         }
-
+        stage('Build') { 
+            steps {
+                sh 'npm run build' 
+            }
+        }
+        stage('Deliver') {
+            steps {
+                sh '''
+                npm start &
+                echo $! > .pidfile
+                '''
+                input message: 'Finished using the web site? (Click "Proceed" to continue)'
+                sh '''
+                kill $(cat .pidfile)
+                rm .pidfile
+                '''
+            }
+        }
         stage('Test'){
             steps{
                 sh "./jenkins/scripts/test.sh"
             }
         }
-
-        stage('Deliver') {
-            steps {
-                sh './jenkins/scripts/deliver.sh'
-                input message: 'Finished using the web site? (Click "Proceed" to continue)'
-                sh './jenkins/scripts/kill.sh'
-            }
-        }
-
     }
 }
